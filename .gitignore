@@ -1,0 +1,10 @@
+data/raw/
+data/processed/
+data/monitoring/
+models/
+mlruns/
+__pycache__/
+*.pyc
+.env
+*.joblib
+*.parquet

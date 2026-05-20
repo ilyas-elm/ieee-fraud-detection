@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt flake8
+
+      - name: Lint with flake8
+        run: flake8 src/ api/ --max-line-length=100
+
+      - name: Run tests
+        env:
+          FRAUD_API_KEY: test-secret-key
+        run: pytest tests/test_drift.py -v

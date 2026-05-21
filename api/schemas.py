@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
+
 class TransactionRequest(BaseModel):
     TransactionAmt: float
     ProductCD: Optional[str] = None
@@ -12,6 +13,7 @@ class TransactionRequest(BaseModel):
     DeviceType: Optional[str] = None
     TransactionDT: Optional[int] = 0
 
+
 class PredictResponse(BaseModel):
     fraud_probability: float
     is_fraud: bool
@@ -19,10 +21,12 @@ class PredictResponse(BaseModel):
     model_version: str
     inference_time_ms: float
 
+
 class ShapFeature(BaseModel):
     feature: str
     shap_value: float
     direction: str
+
 
 class ExplainResponse(BaseModel):
     fraud_probability: float

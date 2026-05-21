@@ -11,22 +11,23 @@ logger = logging.getLogger(__name__)
 
 # Features monitored for drift per spec Section 9.3
 PSI_FEATURES = ["TransactionAmt", "amt_log", "card1_amt_mean"]
-PSI_THRESHOLD = 0.2   # significant drift
-KS_THRESHOLD  = 0.05  # significant drift (p-value)
+PSI_THRESHOLD = 0.2
+KS_THRESHOLD = 0.05
 
 REFERENCE_PATH = Path("data/monitoring/reference.csv")
-LOG_PATH       = Path("logs/inference.jsonl")
+LOG_PATH = Path("logs/inference.jsonl")
 
-
-# ---------------------------------------------------------------------------
-# PSI
-# ---------------------------------------------------------------------------
 
 def compute_psi(reference: np.ndarray, current: np.ndarray, bins: int = 10) -> float:
-# Use percentile-based edges covering both arrays so no values fall outside
+    """
+    Population Stability Index between reference and current distributions.
+    PSI < 0.1  : stable
+    PSI < 0.2  : moderate shift
+    PSI >= 0.2 : significant shift — trigger retraining review
+    """
     combined = np.concatenate([reference, current])
     edges = np.percentile(combined, np.linspace(0, 100, bins + 1))
-    edges = np.unique(edges)  # remove duplicates from identical percentiles
+    edges = np.unique(edges)
 
     counts_ref, _ = np.histogram(reference, bins=edges)
     counts_cur, _ = np.histogram(current, bins=edges)
@@ -41,27 +42,18 @@ def compute_psi(reference: np.ndarray, current: np.ndarray, bins: int = 10) -> f
     return float(psi)
 
 
-# ---------------------------------------------------------------------------
-# KS test
-# ---------------------------------------------------------------------------
-
 def compute_ks(reference: np.ndarray, current: np.ndarray) -> dict:
     """
     KS test on prediction score distributions.
-    Returns statistic and p-value.
     p-value < 0.05 means the distributions are significantly different.
     """
     result = stats.ks_2samp(reference, current)
     return {
         "statistic": float(result.statistic),
-        "p_value":   float(result.pvalue),
+        "p_value": float(result.pvalue),
         "drift_detected": result.pvalue < KS_THRESHOLD,
     }
 
-
-# ---------------------------------------------------------------------------
-# Report
-# ---------------------------------------------------------------------------
 
 def generate_drift_report(
     reference_path: Path = REFERENCE_PATH,
@@ -72,13 +64,13 @@ def generate_drift_report(
     Load reference data and inference logs, compute PSI and KS, return report.
     Run manually or on a schedule — not called during inference.
     """
-    # --- Load reference data (training distribution baseline) ---
     reference = pd.read_csv(reference_path)
 
-    # --- Load inference log (recent predictions) ---
     if not log_path.exists():
-        raise FileNotFoundError(f"Inference log not found at {log_path}. "
-                                "Run /predict at least once before generating a report.")
+        raise FileNotFoundError(
+            f"Inference log not found at {log_path}. "
+            "Run /predict at least once before generating a report."
+        )
 
     records = []
     with open(log_path) as f:
@@ -88,12 +80,13 @@ def generate_drift_report(
                 records.append(json.loads(line))
 
     if len(records) < 30:
-        raise ValueError(f"Only {len(records)} inference records found. "
-                         "Need at least 30 to compute meaningful drift metrics.")
+        raise ValueError(
+            f"Only {len(records)} inference records found. "
+            "Need at least 30 to compute meaningful drift metrics."
+        )
 
     logs = pd.DataFrame(records)
 
-    # --- PSI on key features ---
     psi_results = {}
     for feature in PSI_FEATURES:
         if feature not in reference.columns:
@@ -112,22 +105,20 @@ def generate_drift_report(
             "drift_detected": psi_value >= PSI_THRESHOLD,
         }
 
-    # --- KS test on fraud_probability distribution ---
     ks_result = compute_ks(
         reference["fraud_probability"].dropna().values
         if "fraud_probability" in reference.columns
-        else np.zeros(len(reference)),  # fallback if not present
+        else np.zeros(len(reference)),
         logs["fraud_probability"].dropna().values,
     )
 
-    # --- Assemble report ---
     report = {
-        "generated_at":    datetime.utcnow().isoformat() + "Z",
-        "n_reference":     len(reference),
-        "n_current":       len(logs),
-        "psi_threshold":   PSI_THRESHOLD,
-        "ks_threshold":    KS_THRESHOLD,
-        "feature_drift":   psi_results,
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "n_reference": len(reference),
+        "n_current": len(logs),
+        "psi_threshold": PSI_THRESHOLD,
+        "ks_threshold": KS_THRESHOLD,
+        "feature_drift": psi_results,
         "prediction_drift": ks_result,
         "action_required": (
             any(v["drift_detected"] for v in psi_results.values())
@@ -135,7 +126,6 @@ def generate_drift_report(
         ),
     }
 
-    # Write report to disk — spec Section 9.3
     output_path = Path(output_path) if output_path else Path("logs/drift_report.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:

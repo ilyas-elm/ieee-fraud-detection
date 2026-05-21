@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -180,6 +179,7 @@ def _validate_schema_version(payload: dict[str, Any]) -> None:
             f"Expected {SUPPORTED_SCHEMA_VERSION!r}."
         )
 
+
 def _is_missing_value(value: Any) -> bool:
     if value is None:
         return True
@@ -188,6 +188,7 @@ def _is_missing_value(value: Any) -> bool:
         return bool(pd.isna(value))
     except Exception:
         return False
+
 
 def _validate_and_coerce_value(col: str, value: Any) -> Any:
     # Missing fields are allowed for all optional raw columns.
@@ -231,7 +232,6 @@ def _validate_and_coerce_value(col: str, value: Any) -> Any:
     return numeric_value
 
 
-
 def build_raw_input_frame(
     payloads: list[dict[str, Any]],
     expected_columns: list[str],
@@ -262,7 +262,6 @@ def build_raw_input_frame(
         rows.append(row)
 
     return pd.DataFrame(rows, columns=expected_columns)
-
 
 
 def _ensure_feature_frame(

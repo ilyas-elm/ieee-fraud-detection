@@ -12,3 +12,5 @@ python-multipart
 scipy
 pyarrow
 httpx
+pytest
+flake8

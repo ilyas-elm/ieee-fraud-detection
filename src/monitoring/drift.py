@@ -66,6 +66,7 @@ def compute_ks(reference: np.ndarray, current: np.ndarray) -> dict:
 def generate_drift_report(
     reference_path: Path = REFERENCE_PATH,
     log_path: Path = LOG_PATH,
+    output_path: Path = None,
 ) -> dict:
     """
     Load reference data and inference logs, compute PSI and KS, return report.
@@ -134,4 +135,11 @@ def generate_drift_report(
         ),
     }
 
+    # Write report to disk — spec Section 9.3
+    output_path = Path(output_path) if output_path else Path("logs/drift_report.json")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(report, f, indent=2)
+
+    logger.info("Drift report written to %s", output_path)
     return report

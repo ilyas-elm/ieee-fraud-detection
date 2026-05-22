@@ -2,7 +2,6 @@
 # IEEE-CIS Fraud Detection System
 
 ![CI](https://github.com/ilyas-elm/ieee-fraud-detection/actions/workflows/ci.yml/badge.svg)
-
 End-to-end fraud detection system built on the IEEE-CIS Fraud Detection dataset.
 
 The project covers the full machine learning lifecycle: exploratory data analysis, leakage-safe feature engineering, model benchmarking, XGBoost fraud scoring, FastAPI deployment, API key authentication, SHAP explanations, inference logging, drift monitoring, and Dockerized local deployment.
